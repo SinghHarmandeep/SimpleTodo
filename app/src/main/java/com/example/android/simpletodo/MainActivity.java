@@ -1,5 +1,6 @@
 package com.example.android.simpletodo;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -22,6 +23,12 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<String> items;
     ArrayAdapter<String> itemsAdapter;
     ListView lvView;
+
+    //numeric id to identify the edit item activity
+    public final static int EDIT_REQUEST_CODE = 20;
+    //keys uesd for passing data between activities
+    public final static String ITEM_TEXT = "item text";
+    public final static String ITEM_POSITION = "itemPosition";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // to remove items
+    // to remove items (long click)
     private void setupListViewListener(){
         Log.i("MainActivity", "Setting up listener on list view");
         lvView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
@@ -68,6 +75,42 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
+
+        //set up item listener for edit (regular click)
+        lvView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                //create new activity
+                Intent i = new Intent(MainActivity.this, editItemActivity.class);
+                //pass the data being edited
+                i.putExtra(ITEM_TEXT, items.get(position));
+                i.putExtra(ITEM_POSITION, position);
+                //display the activity
+                startActivityForResult(i, EDIT_REQUEST_CODE);
+            }
+        });
+    }
+
+    // handle result from edit activity
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        //check if the edited activity's result is OK and if it is the same activity that we need
+        if(resultCode == RESULT_OK && requestCode == EDIT_REQUEST_CODE){
+            //extract the updated item data from the intent
+            String updated = data.getExtras().getString(ITEM_TEXT);
+            //extract original position from edit text
+            int position = data.getExtras().getInt(ITEM_POSITION);
+            //update the model arraylist at the edited position
+            items.set(position, updated);
+            //notify the adapter that the model changed
+            itemsAdapter.notifyDataSetChanged();
+            //persist the change
+            writeItems();
+            //toast to confirm the change
+            Toast.makeText(this,"Item updated successfully", Toast.LENGTH_SHORT).show();
+        }
     }
 
     //method for persistence and apachi common.io
